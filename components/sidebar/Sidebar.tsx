@@ -124,7 +124,7 @@ export function Sidebar({ weekDays, todayIso, finances }: SidebarProps) {
       }}
     >
       {/* ── Progreso Diario ── */}
-      <div style={cardStyle}>
+      <div style={{ ...cardStyle, flexShrink: 0 }}>
         <p style={sectionTitleStyle}>Progreso Diario</p>
         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 56 }}>
           {weekDays.map((day) => {
@@ -191,6 +191,8 @@ export function Sidebar({ weekDays, todayIso, finances }: SidebarProps) {
           gap: 0,
           padding: 0,
           overflow: 'hidden',
+          flexShrink: 0,
+          minHeight: 80,
         }}
       >
         <div

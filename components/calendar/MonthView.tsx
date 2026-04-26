@@ -35,13 +35,30 @@ function getBarColor(pct: number): string {
   return '#22C55E'
 }
 
+interface MonthFinances {
+  salary: number
+  currency: string
+  totalFixed: number
+  totalVariable: number
+  totalExtra: number
+}
+
 interface MonthViewProps {
   monthId: string
   dayStats: Record<string, { plannedMin: number; completedMin: number }>
   todayIso: string
+  monthFinances?: MonthFinances | null
+  monthLabel?: string
 }
 
-export function MonthView({ monthId, dayStats, todayIso }: MonthViewProps) {
+function fmtMoney(cents: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency', currency,
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(cents / 100)
+}
+
+export function MonthView({ monthId, dayStats, todayIso, monthFinances, monthLabel }: MonthViewProps) {
   const [year, month] = monthId.split('-').map(Number)
 
   // Build calendar grid: rows of 7 days (Mon–Sun)
@@ -73,7 +90,7 @@ export function MonthView({ monthId, dayStats, todayIso }: MonthViewProps) {
   const prevMonth = shiftMonth(monthId, -1)
   const nextMonth = shiftMonth(monthId, 1)
   const todayWeekId = dateToWeekId(todayIso)
-  const monthLabel = `${MONTHS_ES[month - 1]} ${year}`
+  const monthLabelLocal = monthLabel ?? `${MONTHS_ES[month - 1]} ${year}`
 
   return (
     <div
@@ -204,7 +221,7 @@ export function MonthView({ monthId, dayStats, todayIso }: MonthViewProps) {
               minWidth: 110, textAlign: 'center',
             }}
           >
-            {monthLabel}
+            {monthLabelLocal}
           </span>
 
           <button
@@ -273,76 +290,161 @@ export function MonthView({ monthId, dayStats, todayIso }: MonthViewProps) {
                   window.location.href = `/week/${dateToWeekId(isoDate)}`
                 }}
                 style={{
-                  background: isToday ? '#F0F7FF' : '#ffffff',
-                  border: isToday ? '1px solid #BED5F7' : '1px solid #ECEAE6',
+                  position: 'relative',
+                  border: isToday ? '1.5px solid #BED5F7' : '1px solid #ECEAE6',
                   borderRadius: 8,
-                  padding: '6px 8px 8px',
                   minHeight: 72,
                   cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
+                  overflow: 'hidden',
+                  background: '#ffffff',
                   transition: 'box-shadow 0.1s',
                 }}
                 onMouseEnter={e => {
-                  if (!isToday) (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'
+                  (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'
                 }}
                 onMouseLeave={e => {
                   (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
                 }}
               >
-                {/* Day number */}
-                <span
-                  style={{
+                {/* Vertical fill — rises from bottom */}
+                {inMonth && hasPlan && pct > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0, left: 0, right: 0,
+                    height: `${pct}%`,
+                    background: `${barFillColor}55`,
+                    transition: 'height 0.3s ease',
+                  }} />
+                )}
+
+                {/* Content on top of fill */}
+                <div style={{
+                  position: 'relative',
+                  zIndex: 1,
+                  padding: '6px 8px 6px',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}>
+                  {/* Day number */}
+                  <span style={{
                     fontSize: 11,
                     fontWeight: isToday ? 700 : 500,
                     color: isToday ? '#2563EB' : inMonth ? '#6B7280' : '#D1D5DB',
                     lineHeight: 1,
-                  }}
-                >
-                  {dayNum}
-                </span>
+                  }}>
+                    {dayNum}
+                  </span>
 
-                {/* Productivity bar — only for in-month days with planned activities */}
-                {inMonth && hasPlan && (
-                  <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                    {/* Track */}
-                    <div
-                      style={{
-                        width: '100%',
-                        height: 5,
-                        background: '#E5E7EB',
-                        borderRadius: 3,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${pct}%`,
-                          height: '100%',
-                          background: barFillColor,
-                          borderRadius: 3,
-                          transition: 'width 0.2s',
-                        }}
-                      />
-                    </div>
-                    {/* Percentage text */}
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 600,
-                        color: '#9CA3AF',
-                        lineHeight: 1,
-                      }}
-                    >
+                  {/* Percentage */}
+                  {inMonth && hasPlan && (
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: pct === 100 ? '#16A34A' : pct >= 50 ? '#D97706' : '#6B7280',
+                      lineHeight: 1,
+                      alignSelf: 'flex-end',
+                    }}>
                       {pct}%
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )
           })}
         </div>
+
+        {/* ── Resumen financiero del mes ── */}
+        {monthFinances && (() => {
+          const { salary, currency, totalFixed, totalVariable, totalExtra } = monthFinances
+          const totalIncome = salary + totalExtra
+          const available = totalIncome - totalFixed - totalVariable
+          return (
+            <div style={{
+              marginTop: 12,
+            background: 'white',
+            borderRadius: 12,
+            padding: '16px 20px',
+            border: '1px solid #ECEAE6',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 12,
+          }}>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#B0ADA8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                💰 Ingreso {monthLabelLocal}
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: '#1C1C1E', margin: 0 }}>
+                {fmtMoney(totalIncome, currency)}
+              </p>
+              {totalExtra > 0 && (
+                <p style={{ fontSize: 10, color: '#22C55E', margin: '2px 0 0' }}>+{fmtMoney(totalExtra, currency)} extra</p>
+              )}
+            </div>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#B0ADA8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                📋 Gastos fijos
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: '#E74C3C', margin: 0 }}>
+                -{fmtMoney(totalFixed, currency)}
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#B0ADA8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                💸 Gastos variables
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: '#E74C3C', margin: 0 }}>
+                -{fmtMoney(totalVariable, currency)}
+              </p>
+            </div>
+            <div style={{
+              borderLeft: '1px solid #ECEAE6',
+              paddingLeft: 16,
+            }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#B0ADA8', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                ✅ Disponible
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 800, color: available >= 0 ? '#22C55E' : '#E74C3C', margin: 0 }}>
+                {fmtMoney(available, currency)}
+              </p>
+              <p style={{ fontSize: 10, color: '#B0ADA8', margin: '2px 0 0' }}>
+                {available >= 0 ? 'para ahorrar' : 'déficit'}
+              </p>
+            </div>
+            </div>
+          )
+        })()}
+
+        {/* ── Tips ── */}
+        {monthFinances && (() => {
+          const { salary, currency, totalFixed, totalVariable, totalExtra } = monthFinances
+          const available = salary + totalExtra - totalFixed - totalVariable
+          if (available <= 0) return (
+            <div style={{
+              marginTop: 10, padding: '12px 16px', borderRadius: 12,
+              background: '#FFF1F2', border: '1px solid #FECDD3',
+              fontSize: 13, color: '#BE123C', lineHeight: 1.6,
+            }}>
+              ⚠️ <strong>Ojo con los gastos este mes.</strong> Estás gastando más de lo que ingresás. Revisá tus gastos variables — ahí suele estar el problema.
+            </div>
+          )
+
+          const dollars = available / 100
+          const dailyCents = Math.round(available / 30)
+
+          return (
+            <div style={{
+              marginTop: 10, padding: '12px 16px', borderRadius: 12,
+              background: '#F0FDF4', border: '1px solid #86EFAC',
+              fontSize: 13, color: '#15803D', lineHeight: 1.7,
+            }}>
+              💡 <strong>En teoría,</strong> con los gastos que estás teniendo este mes te quedan libres{' '}
+              <strong>{fmtMoney(available, currency)}</strong>. Podés ahorrarlo o — si te ponés creativo —{' '}
+              podés gastar <strong>{fmtMoney(dailyCents, currency)} diarios</strong> en antojitos. 😄👍
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

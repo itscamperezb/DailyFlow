@@ -183,7 +183,7 @@ export function FinancesClient({
   const [payFrequency, setPayFrequency] = useState(
     initialFinances?.payFrequency ?? 'monthly'
   )
-  const [currency] = useState(initialFinances?.currency ?? 'USD')
+  const [currency, setCurrency] = useState(initialFinances?.currency ?? 'USD')
   const [salaryLoading, setSalaryLoading] = useState(false)
   const [salarySaved, setSalarySaved] = useState(false)
 
@@ -410,6 +410,22 @@ export function FinancesClient({
                   <option value="weekly">Semanal</option>
                 </select>
               </div>
+              <div>
+                <label style={{ fontSize: 12, color: '#B0ADA8', display: 'block', marginBottom: 4 }}>
+                  Moneda
+                </label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  style={{ ...inputStyle, width: '100%', background: 'white' }}
+                >
+                  <option value="USD">USD 🇺🇸</option>
+                  <option value="COP">COP 🇨🇴</option>
+                  <option value="EUR">EUR 🇪🇺</option>
+                  <option value="MXN">MXN 🇲🇽</option>
+                  <option value="ARS">ARS 🇦🇷</option>
+                </select>
+              </div>
               <button
                 onClick={handleSaveSalary}
                 disabled={salaryLoading}
@@ -503,8 +519,8 @@ export function FinancesClient({
               cardStyle={cardStyle}
               note={totalExtraIncome > 0 ? `incluye ${fmtMoney(totalExtraIncome, currency)} extra` : undefined}
             />
-            {/* Quincena breakdowns — always shown */}
-            {(() => {
+            {/* Quincena breakdowns — only when biweekly */}
+            {payFrequency === 'biweekly' && (() => {
               const todayQ = getQuincena(new Date().toISOString().slice(0, 10))
               return (
                 <>
