@@ -84,7 +84,7 @@ export function TemplateSelector({
     <div className="flex items-center gap-2">
       {/* Save current week as template */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogTrigger asChild>
+        <DialogTrigger>
           <Button variant="outline" size="sm" data-testid="save-template-btn">
             Save as Template
           </Button>

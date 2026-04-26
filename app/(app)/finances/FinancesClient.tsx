@@ -228,7 +228,7 @@ export function FinancesClient({
   // ── Fixed expense helpers ──
   const handleAddSuggestion = useCallback(async (icon: string, name: string) => {
     const id = crypto.randomUUID()
-    const newExp: FixedExpense = { id, userId, name, icon, monthlyAmount: 0, createdAt: null }
+    const newExp: FixedExpense = { id, userId, name, icon, monthlyAmount: 0, quincena: null, createdAt: null }
     setFixed((prev) => [...prev, newExp])
     await createFixedExpense({ id, userId, name, icon, monthlyAmount: 0 })
   }, [userId])
@@ -237,7 +237,7 @@ export function FinancesClient({
     const trimmed = customName.trim()
     if (!trimmed) return
     const id = crypto.randomUUID()
-    const newExp: FixedExpense = { id, userId, name: trimmed, icon: '💸', monthlyAmount: 0, createdAt: null }
+    const newExp: FixedExpense = { id, userId, name: trimmed, icon: '💸', monthlyAmount: 0, quincena: null, createdAt: null }
     setFixed((prev) => [...prev, newExp])
     setCustomName('')
     setShowCustomInput(false)
