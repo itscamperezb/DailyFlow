@@ -107,7 +107,7 @@ export async function updateActivity(
   const snapshot = store.get(dayActivitiesAtom(day))
   const activity = snapshot.find((a) => a.id === activityId)
   if (!activity) return
-  store.set(updateActivityAtom, { ...activity, ...updates })
+  store.set(updateActivityAtom, { ...activity, ...updates, categoryId: updates.categoryId ?? activity.categoryId })
   try {
     await dbUpdateActivity(activityId, updates)
   } catch {
